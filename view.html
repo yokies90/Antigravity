@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>View Submissions</title>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --bg: #F3F4F6;
+      --surface: #FFFFFF;
+      --text: #111827;
+      --text-muted: #6B7280;
+      --border: #E5E7EB;
+      --error: #DC2626;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 32px 16px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 32px;
+      font-size: 32px;
+      font-weight: 700;
+      text-align: center;
+      color: var(--text);
+    }
+
+    #list {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .submission-card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .submission-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+    }
+
+    .header-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .name {
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .email {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .phone {
+      color: var(--text-muted);
+      font-size: 14px;
+      background: #F3F4F6;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .message {
+      margin: 0 0 16px 0;
+      line-height: 1.6;
+      color: #374151;
+      white-space: pre-wrap;
+    }
+
+    .created-at {
+      font-size: 12px;
+      color: #9CA3AF;
+      text-align: right;
+      display: block;
+    }
+
+    .status-msg {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 16px;
+      padding: 40px;
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+    }
+
+    .error-msg {
+      color: var(--error);
+      border-color: #FCA5A5;
+      background: #FEF2F2;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <h1>All submissions</h1>
+    <ul id="list">
+      <li class="status-msg">Loading submissions...</li>
+    </ul>
+  </div>
+
+  <script>
+    const URL = "https://script.google.com/macros/s/AKfycbyFj6ahiDwekuxyNSjQi6tMlnVqb_XQrnl1-p4Mcu_6pIq5riSWQCOu-j2A61qCWfcQ7w/exec";
+    const listElement = document.getElementById('list');
+
+    async function loadSubmissions() {
+      try {
+        const res = await fetch(URL);
+        const data = await res.json();
+        
+        listElement.innerHTML = ''; // Clear loading message
+
+        if (!data.contacts || data.contacts.length === 0) {
+          listElement.innerHTML = '<li class="status-msg">No submissions yet</li>';
+          return;
+        }
+
+        data.contacts.forEach(contact => {
+          const li = document.createElement('li');
+          li.className = 'submission-card';
+          
+          const phoneHtml = contact.phone ? `<span class="phone">${escapeHtml(contact.phone)}</span>` : '';
+          const nameHtml = contact.name ? `<span class="name">${escapeHtml(contact.name)}</span>` : '<span class="name">Anonymous</span>';
+          const emailHtml = contact.email ? `<span class="email">(${escapeHtml(contact.email)})</span>` : '';
+          const messageHtml = contact.message ? escapeHtml(contact.message) : '';
+          // Show the original created_at string if parsing fails, else show a local date
+          const dateHtml = contact.created_at ? contact.created_at : '';
+
+          li.innerHTML = `
+            <div class="header-row">
+              ${nameHtml}
+              ${emailHtml}
+              ${phoneHtml}
+            </div>
+            <p class="message">${messageHtml}</p>
+            <small class="created-at">${escapeHtml(dateHtml)}</small>
+          `;
+          
+          listElement.appendChild(li);
+        });
+
+      } catch (error) {
+        console.error(error);
+        listElement.innerHTML = '<li class="status-msg error-msg">Couldn\\'t load — try again later</li>';
+      }
+    }
+
+    // Basic HTML escaping to prevent XSS
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+             .toString()
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
+
+    loadSubmissions();
+  </script>
+</body>
+</html>
