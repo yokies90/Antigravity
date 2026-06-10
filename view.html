@@ -30,15 +30,39 @@
     .container {
       width: 100%;
       max-width: 600px;
+      position: relative;
+    }
+
+    .header-area {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
     }
 
     h1 {
-      margin-top: 0;
-      margin-bottom: 32px;
+      margin: 0;
       font-size: 32px;
       font-weight: 700;
-      text-align: center;
       color: var(--text);
+    }
+
+    #logoutBtn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    #logoutBtn:hover {
+      background: #F9FAFB;
+      color: var(--text);
+      border-color: #D1D5DB;
     }
 
     #list {
@@ -124,7 +148,10 @@
 </head>
 <body>
   <div class="container">
-    <h1>All submissions</h1>
+    <div class="header-area">
+      <h1>All submissions</h1>
+      <button id="logoutBtn">Log out</button>
+    </div>
     <ul id="list">
       <li class="status-msg">Loading submissions...</li>
     </ul>
@@ -133,12 +160,31 @@
   <script>
     const URL = "https://script.google.com/macros/s/AKfycbyFj6ahiDwekuxyNSjQi6tMlnVqb_XQrnl1-p4Mcu_6pIq5riSWQCOu-j2A61qCWfcQ7w/exec";
     const listElement = document.getElementById('list');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem("token");
+        window.location.href = "login.html";
+    });
 
     async function loadSubmissions() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+          window.location.href = "login.html";
+          return;
+      }
+
       try {
-        const res = await fetch(URL);
+        const params = new URLSearchParams({ action: "getContacts", token });
+        const res = await fetch(URL + "?" + params.toString());
         const data = await res.json();
         
+        if (data.ok === false) {
+            localStorage.removeItem("token");
+            window.location.href = "login.html";
+            return;
+        }
+
         listElement.innerHTML = ''; // Clear loading message
 
         if (!data.contacts || data.contacts.length === 0) {
@@ -154,7 +200,6 @@
           const nameHtml = contact.name ? `<span class="name">${escapeHtml(contact.name)}</span>` : '<span class="name">Anonymous</span>';
           const emailHtml = contact.email ? `<span class="email">(${escapeHtml(contact.email)})</span>` : '';
           const messageHtml = contact.message ? escapeHtml(contact.message) : '';
-          // Show the original created_at string if parsing fails, else show a local date
           const dateHtml = contact.created_at ? contact.created_at : '';
 
           li.innerHTML = `
